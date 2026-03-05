@@ -1,17 +1,83 @@
 import { useState, useCallback } from "react";
 
 // ─── Mock weather fetch (replace with real API call to your backend) ──────────
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+const OPENWEATHER_API_KEY = process.env.REACT_APP_OPENWEATHER_API_KEY || "";
 
 async function fetchWeatherFromBackend(city) {
-  const res = await fetch(`${BACKEND_URL}/api/weather?city=${encodeURIComponent(city)}`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("wa_token") || ""}` },
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Failed to fetch weather.");
+  if (!OPENWEATHER_API_KEY) {
+    throw new Error("Missing REACT_APP_OPENWEATHER_API_KEY in your frontend environment.");
   }
-  return res.json();
+
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch live weather.");
+
+  const weather = {
+    city: data.name,
+    country: data.sys?.country || "",
+    temp: Math.round(data.main?.temp ?? 0),
+    feelsLike: Math.round(data.main?.feels_like ?? 0),
+    humidity: data.main?.humidity ?? 0,
+    windSpeed: Math.round((data.wind?.speed ?? 0) * 3.6),
+    condition: data.weather?.[0]?.main || "Clear",
+    description: data.weather?.[0]?.description || "clear sky",
+    icon: data.weather?.[0]?.icon || "01d",
+    sunrise: data.sys?.sunrise,
+    sunset: data.sys?.sunset,
+  };
+
+  const profileByWeather = (() => {
+    const c = weather.condition.toLowerCase();
+    if (c.includes("snow")) return "new york";
+    if (c.includes("rain") || c.includes("drizzle") || c.includes("shower")) return "london";
+    if (weather.temp >= 28) return "manila";
+    if (weather.temp >= 22) return "sydney";
+    if (weather.temp >= 15) return "tokyo";
+    return "new york";
+  })();
+
+  const profile = getDemoData(profileByWeather);
+  return { weather, recommendations: profile.recommendations, tips: profile.tips };
+}
+
+async function fetchWeatherFromCoords(lat, lon) {
+  if (!OPENWEATHER_API_KEY) {
+    throw new Error("Missing REACT_APP_OPENWEATHER_API_KEY in your frontend environment.");
+  }
+
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch weather for your location.");
+
+  const weather = {
+    city: data.name,
+    country: data.sys?.country || "",
+    temp: Math.round(data.main?.temp ?? 0),
+    feelsLike: Math.round(data.main?.feels_like ?? 0),
+    humidity: data.main?.humidity ?? 0,
+    windSpeed: Math.round((data.wind?.speed ?? 0) * 3.6),
+    condition: data.weather?.[0]?.main || "Clear",
+    description: data.weather?.[0]?.description || "clear sky",
+    icon: data.weather?.[0]?.icon || "01d",
+    sunrise: data.sys?.sunrise,
+    sunset: data.sys?.sunset,
+  };
+
+  const profileByWeather = (() => {
+    const c = weather.condition.toLowerCase();
+    if (c.includes("snow")) return "new york";
+    if (c.includes("rain") || c.includes("drizzle") || c.includes("shower")) return "london";
+    if (weather.temp >= 28) return "manila";
+    if (weather.temp >= 22) return "sydney";
+    if (weather.temp >= 15) return "tokyo";
+    return "new york";
+  })();
+
+  const profile = getDemoData(profileByWeather);
+  return { weather, recommendations: profile.recommendations, tips: profile.tips };
 }
 
 // Demo data for artifact preview (remove when connecting to real backend)
@@ -123,7 +189,7 @@ const CLOTHING_IMAGES = {
   'Chinos / Jeans':        '/pesce-huang-nC4-PXzKZcI-unsplash.jpg',
   'Sneakers':              'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
   'T-Shirt / Polo':        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&q=80',
-  'Shorts / Skirt':        '/mike-von-nXpdguzAZ2w-unsplash',
+  'Shorts / Skirt':        '/mike-von-nXpdguzAZ2w-unsplash.jpg',
   'Sneakers / Flats':      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
   'Lightweight T-Shirt':   'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&q=80',
   'Shorts / Summer Dress': 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=300&q=80',
@@ -271,7 +337,6 @@ export default function WeatherAdvisor() {
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
-  const [useDemoMode, setUseDemoMode] = useState(true);
 
   const theme = result ? getWeatherTheme(result.weather.condition, result.weather.temp)
     : { bg: "from-slate-800 via-blue-900 to-slate-900", accent: "#93c5fd", particle: "🌤️" };
@@ -283,20 +348,14 @@ export default function WeatherAdvisor() {
     setError("");
     setResult(null);
     try {
-      let data;
-      if (useDemoMode) {
-        await new Promise(r => setTimeout(r, 800)); // simulate network
-        data = getDemoData(q);
-      } else {
-        data = await fetchWeatherFromBackend(q);
-      }
+      const data = await fetchWeatherFromBackend(q);
       setResult(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [city, useDemoMode]);
+  }, [city]);
 
   const handleGeoLocation = () => {
     if (!navigator.geolocation) {
@@ -308,14 +367,8 @@ export default function WeatherAdvisor() {
         setLoading(true);
         setError("");
         try {
-          if (useDemoMode) {
-            await new Promise(r => setTimeout(r, 800));
-            setResult(getDemoData("tokyo"));
-          } else {
-            const res = await fetch(`${BACKEND_URL}/api/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-            if (!res.ok) throw new Error("Could not fetch weather for your location.");
-            setResult(await res.json());
-          }
+          const data = await fetchWeatherFromCoords(pos.coords.latitude, pos.coords.longitude);
+          setResult(data);
         } catch (err) { setError(err.message); }
         finally { setLoading(false); }
       },
@@ -372,15 +425,11 @@ export default function WeatherAdvisor() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
               style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <div className={`w-2 h-2 rounded-full ${useDemoMode ? "bg-yellow-400" : "bg-green-400"}`}
-                style={{ boxShadow: `0 0 6px ${useDemoMode ? "#fbbf24" : "#4ade80"}` }} />
+              <div className="w-2 h-2 rounded-full bg-green-400"
+                style={{ boxShadow: "0 0 6px #4ade80" }} />
               <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.7rem" }}>
-                {useDemoMode ? "Demo" : "Live"}
+                Live
               </span>
-              <button onClick={() => setUseDemoMode(m => !m)}
-                style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.65rem" }} className="hover:opacity-100">
-                {useDemoMode ? "Switch to live →" : "← Use demo"}
-              </button>
             </div>
 
             {user ? (
@@ -546,17 +595,7 @@ export default function WeatherAdvisor() {
                     {result.tips.map((tip, i) => <TipBadge key={i} tip={tip} />)}
                   </div>
 
-                  {/* Demo mode notice */}
-                  {useDemoMode && (
-                    <div className="mt-4 rounded-xl px-4 py-3"
-                      style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
-                      <p className="text-yellow-300 text-xs font-medium">⚡ Demo Mode</p>
-                      <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.72rem" }} className="mt-0.5">
-                        Connect to your Node.js backend for live weather data.
-                        Toggle "Live" in the header after starting the server.
-                      </p>
-                    </div>
-                  )}
+                  
                 </div>
               </div>
             </div>
@@ -581,3 +620,9 @@ export default function WeatherAdvisor() {
     </>
   );
 }
+
+
+
+
+
+
