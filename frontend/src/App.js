@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 // ─── Mock weather fetch (replace with real API call to your backend) ──────────
 const BACKEND_URL = "http://localhost:5000";
