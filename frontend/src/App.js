@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 
 // ─── Mock weather fetch (replace with real API call to your backend) ──────────
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
-const OPENWEATHER_API_KEY = process.env.REACT_APP_OPENWEATHER_API_KEY || "";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+const OPENWEATHER_API_KEY = process.env.REACT_APP_OPENWEATHER_API_KEY || "4b722c1891bc5a105ea3769d1aa0456d";
 
 async function fetchWeatherFromBackend(city) {
   if (!OPENWEATHER_API_KEY) {
