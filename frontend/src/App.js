@@ -542,7 +542,8 @@ function WeatherEffects({ scene, accent }) {
               key={`ray-${i}`}
               className="sun-ray"
               style={{
-                transform: `translate(-50%, -50%) rotate(${i * 36}deg)`,
+                transform: `translate(-50%, calc(-100% - 88px)) rotate(${i * 36}deg)`,
+                transformOrigin: `50% calc(100% + 88px)`,
                 animationDelay: `${i * -0.22}s`,
               }}
             />
@@ -806,8 +807,8 @@ export default function WeatherAdvisor() {
           50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
         }
         @keyframes ray-sway {
-          0%, 100% { opacity: 0.25; transform-origin: center 200px; }
-          50% { opacity: 0.62; transform-origin: center 200px; }
+          0%, 100% { opacity: 0.25; }
+          50% { opacity: 0.62; }
         }
         @keyframes flash {
           0%, 74%, 100% { opacity: 0; }
@@ -837,7 +838,7 @@ export default function WeatherAdvisor() {
           width: 176px;
           height: 176px;
           border-radius: 999px;
-          top: 20%;
+          top: 26%;
           left: 16%;
           transform: translate(-50%, -50%);
           background: radial-gradient(circle, rgba(255,244,214,0.96), rgba(255,200,90,0.66));
@@ -846,11 +847,11 @@ export default function WeatherAdvisor() {
         .sun-ray {
           position: absolute;
           width: 5px;
-          height: 58px;
-          top: 20%;
+          height: 64px;
+          top: 26%;
           left: 16%;
           border-radius: 99px;
-          background: linear-gradient(to bottom, rgba(255,240,180,0.5), transparent);
+          background: linear-gradient(to bottom, rgba(255,240,180,0.72), transparent);
           animation: ray-sway 3.4s ease-in-out infinite;
         }
         .moon-core {
@@ -943,7 +944,8 @@ export default function WeatherAdvisor() {
         @media (max-width: 480px) {
           .card-grid { grid-template-columns: repeat(3, 1fr); }
           .outfit-grid { grid-template-columns: repeat(2, 1fr); }
-          .sun-core { width: 120px; height: 120px; top: 19%; left: 20%; }
+          .sun-core { width: 120px; height: 120px; top: 25%; left: 20%; }
+          .sun-ray { top: 25%; left: 20%; transform-origin: 50% calc(100% + 60px); }
           .moon-core { width: 88px; height: 88px; right: 10%; top: 16%; }
           .rain-drop { height: 62px; }
         }
@@ -961,14 +963,19 @@ export default function WeatherAdvisor() {
         />
 
         <header className="relative z-10 flex items-center justify-between px-6 py-5 max-w-4xl mx-auto">
-          <div>
+          <button
+            type="button"
+            onClick={() => { setResult(null); setCity(""); setError(""); setCitySuggestions([]); }}
+            className="text-left transition-opacity hover:opacity-75"
+            aria-label="Go to home"
+          >
             <h1 className="text-white font-bold text-xl" style={{ fontFamily: "'Sora', sans-serif", letterSpacing: "-0.02em" }}>
               🌤️ WeatherWear
             </h1>
             <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.72rem", letterSpacing: "0.05em" }} className="uppercase font-medium">
               Clothing Advisor
             </p>
-          </div>
+          </button>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
             <div className="w-2 h-2 rounded-full bg-green-400" style={{ boxShadow: "0 0 6px #4ade80" }} />
@@ -999,12 +1006,12 @@ export default function WeatherAdvisor() {
             )}
           </div>
 
-          <div className={`${isResultView ? "max-w-6xl mb-4" : "max-w-xl mb-6"} mx-auto`} style={{ animation: "slideUp 0.6s 0.1s ease both" }}>
+          <div className={`${isResultView ? "max-w-6xl mb-4" : "max-w-xl mb-6"} mx-auto`} style={{ animation: "slideUp 0.6s 0.1s ease both", position: "relative", zIndex: 50 }}>
             <div className="flex gap-3">
               <div className="relative flex-1">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">🔍</span>
                 <input
-                  className="search-input w-full pl-11 pr-4 py-4 rounded-2xl text-white font-medium"
+                  className="search-input w-full pl-11 pr-10 py-4 rounded-2xl text-white font-medium"
                   style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)", fontSize: isResultView ? "1rem" : "0.95rem" }}
                   placeholder="City, neighborhood, street address..."
                   value={city}
@@ -1023,10 +1030,23 @@ export default function WeatherAdvisor() {
                   }}
                 />
 
+                {city && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setCity(""); setCitySuggestions([]); setIsSearchFocused(false); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-all hover:bg-white/20"
+                    style={{ color: "rgba(255,255,255,0.5)" }}
+                    aria-label="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+
                 {shouldShowSuggestions && (
                   <div
-                    className="absolute top-[calc(100%+0.5rem)] left-0 right-0 rounded-2xl overflow-hidden z-20"
-                    style={{ background: "rgba(15,23,42,0.96)", border: "1px solid rgba(255,255,255,0.14)", backdropFilter: "blur(14px)" }}
+                    className="absolute top-[calc(100%+0.5rem)] left-0 right-0 rounded-2xl overflow-hidden"
+                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(20px)", zIndex: 9999, boxShadow: "0 8px 32px rgba(0,0,0,0.25)" }}
                   >
                     {suggestionsLoading ? (
                       <p className="px-4 py-3 text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
