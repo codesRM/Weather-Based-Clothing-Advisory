@@ -650,10 +650,28 @@ export default function WeatherAdvisor() {
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const suggestionAbortRef = useRef(null);
   const blurTimeoutRef = useRef(null);
+  const bgFadeRef = useRef(null);
 
-  const theme = result
-    ? getWeatherTheme(result.weather)
-    : { bg: "from-slate-800 via-blue-900 to-slate-900", accent: "#93c5fd", particle: "🌤️", label: "Weather" };
+  const defaultTheme = { bg: "from-slate-800 via-blue-900 to-slate-900", accent: "#93c5fd", particle: "🌤️", label: "Weather" };
+  const theme = result ? getWeatherTheme(result.weather) : defaultTheme;
+
+  const [displayTheme, setDisplayTheme] = useState(defaultTheme);
+  const [bgOpacity, setBgOpacity] = useState(1);
+
+  useEffect(() => {
+    if (!result) {
+      if (bgFadeRef.current) clearTimeout(bgFadeRef.current);
+      setDisplayTheme(defaultTheme);
+      setBgOpacity(1);
+      return;
+    }
+    setBgOpacity(0);
+    bgFadeRef.current = setTimeout(() => {
+      setDisplayTheme(theme);
+      setBgOpacity(1);
+    }, 450);
+    return () => clearTimeout(bgFadeRef.current);
+  }, [result?.weather?.condition, result?.weather?.temp]);
   const beforeYouGoNotes = result ? buildBeforeYouGoNotes(result.weather, result.recommendations) : [];
   const isResultView = Boolean(result && !loading);
   const shouldShowSuggestions = isSearchFocused && city.trim();
@@ -952,15 +970,21 @@ export default function WeatherAdvisor() {
       `}</style>
 
       <div
-        className={`min-h-screen bg-gradient-to-br ${theme.bg || "from-slate-800 via-blue-900 to-slate-900"} transition-all duration-1000 relative overflow-hidden`}
-        style={{ fontFamily: "'DM Sans', sans-serif", background: theme.background || undefined }}
+        className={`min-h-screen bg-gradient-to-br ${displayTheme.bg || "from-slate-800 via-blue-900 to-slate-900"} relative overflow-hidden`}
+        style={{ fontFamily: "'DM Sans', sans-serif", background: displayTheme.background || undefined }}
       >
-        <WeatherEffects scene={theme.scene || "partly-cloudy"} accent={theme.accent || "#93c5fd"} />
-        <div className="orb absolute top-[-10%] left-[-10%] w-96 h-96 rounded-full pointer-events-none" style={{ background: `radial-gradient(circle, ${theme.accent}22, transparent 70%)` }} />
+        {/* Background fade layer — gradient + effects crossfade on scene change */}
         <div
-          className="orb absolute bottom-[-5%] right-[-5%] w-80 h-80 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${theme.accent}18, transparent 70%)`, animationDelay: "2s" }}
-        />
+          className={`absolute inset-0 bg-gradient-to-br ${displayTheme.bg || "from-slate-800 via-blue-900 to-slate-900"} pointer-events-none`}
+          style={{ background: displayTheme.background || undefined, opacity: bgOpacity, transition: "opacity 0.45s ease" }}
+        >
+          <WeatherEffects scene={displayTheme.scene || "partly-cloudy"} accent={displayTheme.accent || "#93c5fd"} />
+          <div className="orb absolute top-[-10%] left-[-10%] w-96 h-96 rounded-full" style={{ background: `radial-gradient(circle, ${displayTheme.accent}22, transparent 70%)` }} />
+          <div
+            className="orb absolute bottom-[-5%] right-[-5%] w-80 h-80 rounded-full"
+            style={{ background: `radial-gradient(circle, ${displayTheme.accent}18, transparent 70%)`, animationDelay: "2s" }}
+          />
+        </div>
 
         <header className="relative z-10 flex items-center justify-between px-6 py-5 max-w-4xl mx-auto">
           <button
