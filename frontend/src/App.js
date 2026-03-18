@@ -1072,7 +1072,7 @@ export default function WeatherAdvisor() {
                 {shouldShowSuggestions && (
                   <div
                     className="absolute top-[calc(100%+0.5rem)] left-0 right-0 rounded-2xl overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(20px)", zIndex: 9999, boxShadow: "0 8px 32px rgba(0,0,0,0.25)" }}
+                    style={{ background: "rgba(15,25,50,0.82)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(20px)", zIndex: 9999, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
                   >
                     {suggestionsLoading ? (
                       <p className="px-4 py-3 text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
