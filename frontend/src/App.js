@@ -442,6 +442,8 @@ function getWeatherScene(weather = {}) {
   return "partly-cloudy";
 }
 
+const DEFAULT_THEME = { bg: "from-slate-800 via-blue-900 to-slate-900", accent: "#93c5fd", particle: "🌤️", label: "Weather" };
+
 function getWeatherTheme(weather) {
   const scene = getWeatherScene(weather);
   const themes = {
@@ -652,26 +654,26 @@ export default function WeatherAdvisor() {
   const blurTimeoutRef = useRef(null);
   const bgFadeRef = useRef(null);
 
-  const defaultTheme = { bg: "from-slate-800 via-blue-900 to-slate-900", accent: "#93c5fd", particle: "🌤️", label: "Weather" };
-  const theme = result ? getWeatherTheme(result.weather) : defaultTheme;
+  const theme = result ? getWeatherTheme(result.weather) : DEFAULT_THEME;
 
-  const [displayTheme, setDisplayTheme] = useState(defaultTheme);
+  const [displayTheme, setDisplayTheme] = useState(DEFAULT_THEME);
   const [bgOpacity, setBgOpacity] = useState(1);
 
   useEffect(() => {
+    if (bgFadeRef.current) clearTimeout(bgFadeRef.current);
     if (!result) {
-      if (bgFadeRef.current) clearTimeout(bgFadeRef.current);
-      setDisplayTheme(defaultTheme);
+      setDisplayTheme(DEFAULT_THEME);
       setBgOpacity(1);
       return;
     }
     setBgOpacity(0);
+    const newTheme = getWeatherTheme(result.weather);
     bgFadeRef.current = setTimeout(() => {
-      setDisplayTheme(theme);
+      setDisplayTheme(newTheme);
       setBgOpacity(1);
     }, 450);
     return () => clearTimeout(bgFadeRef.current);
-  }, [result?.weather?.condition, result?.weather?.temp]);
+  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
   const beforeYouGoNotes = result ? buildBeforeYouGoNotes(result.weather, result.recommendations) : [];
   const isResultView = Boolean(result && !loading);
   const shouldShowSuggestions = isSearchFocused && city.trim();
